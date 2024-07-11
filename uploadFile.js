@@ -1,11 +1,12 @@
 const multer = require('multer');
 const path = require('path');
 
+
 const storageCategory = multer.diskStorage({
-  destination: function(req, file, cb) {
+  destination: function (req, file, cb) {
     cb(null, './public/category');
   },
-  filename: function(req, file, cb) {
+  filename: function (req, file, cb) {
     // Check file type based on its extension
     const filetypes = /jpeg|jpg|png/;
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
@@ -26,10 +27,10 @@ const uploadCategory = multer({
 });
 
 const storageProduct = multer.diskStorage({
-  destination: function(req, file, cb) {
+  destination: function (req, file, cb) {
     cb(null, './public/products');
   },
-  filename: function(req, file, cb) {
+  filename: function (req, file, cb) {
     // Check file type based on its extension
     const filetypes = /jpeg|jpg|png/;
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
@@ -51,10 +52,10 @@ const uploadProduct = multer({
 
 
 const storagePoster = multer.diskStorage({
-  destination: function(req, file, cb) {
+  destination: function (req, file, cb) {
     cb(null, './public/posters');
   },
-  filename: function(req, file, cb) {
+  filename: function (req, file, cb) {
     // Check file type based on its extension
     const filetypes = /jpeg|jpg|png/;
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
@@ -75,7 +76,7 @@ const uploadPosters = multer({
 });
 
 module.exports = {
-    uploadCategory,
-    uploadProduct,
-    uploadPosters,
+  uploadCategory,
+  uploadProduct,
+  uploadPosters,
 };

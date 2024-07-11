@@ -4,11 +4,13 @@ const SubCategory = require('../model/subCategory');
 const Brand = require('../model/brand');
 const Product = require('../model/product');
 const asyncHandler = require('express-async-handler');
+const verifyToken = require('../middlewares/verify_token_middleware');
+
 
 // Get all sub-categories
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', verifyToken, asyncHandler(async (req, res) => {
     try {
-        const subCategories = await SubCategory.find().populate('categoryId').sort({'categoryId': 1});
+        const subCategories = await SubCategory.find().populate('categoryId').sort({ 'categoryId': 1 });
         res.json({ success: true, message: "Sub-categories retrieved successfully.", data: subCategories });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -16,7 +18,7 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // Get a sub-category by ID
-router.get('/:id', asyncHandler(async (req, res) => {
+router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const subCategoryID = req.params.id;
         const subCategory = await SubCategory.findById(subCategoryID).populate('categoryId');
@@ -30,7 +32,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Create a new sub-category
-router.post('/', asyncHandler(async (req, res) => {
+router.post('/', verifyToken, asyncHandler(async (req, res) => {
     const { name, categoryId } = req.body;
     if (!name || !categoryId) {
         return res.status(400).json({ success: false, message: "Name and category ID are required." });
@@ -46,7 +48,7 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 // Update a sub-category
-router.put('/:id', asyncHandler(async (req, res) => {
+router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     const subCategoryID = req.params.id;
     const { name, categoryId } = req.body;
     console.log(req.body)
@@ -67,7 +69,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Delete a sub-category
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
     const subCategoryID = req.params.id;
     try {
         // Check if any brand is associated with the sub-category

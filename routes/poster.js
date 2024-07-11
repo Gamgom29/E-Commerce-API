@@ -5,10 +5,12 @@ const { uploadPosters } = require('../uploadFile');
 const multer = require('multer');
 const asyncHandler = require('express-async-handler');
 const { BASE_URL } = require('./constants');
+const verifyToken = require('../middlewares/verify_token_middleware');
+
 
 
 // Get all posters
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', verifyToken, asyncHandler(async (req, res) => {
     try {
         const posters = await Poster.find({});
         res.json({ success: true, message: "Posters retrieved successfully.", data: posters });
@@ -18,7 +20,7 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // Get a poster by ID
-router.get('/:id', asyncHandler(async (req, res) => {
+router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const posterID = req.params.id;
         const poster = await Poster.findById(posterID);
@@ -32,7 +34,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Create a new poster
-router.post('/', asyncHandler(async (req, res) => {
+router.post('/', verifyToken, asyncHandler(async (req, res) => {
     try {
         uploadPosters.single('img')(req, res, async function (err) {
             if (err instanceof multer.MulterError) {
@@ -76,7 +78,7 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 // Update a poster
-router.put('/:id', asyncHandler(async (req, res) => {
+router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const categoryID = req.params.id;
         uploadPosters.single('img')(req, res, async function (err) {
@@ -122,7 +124,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Delete a poster
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
     const posterID = req.params.id;
     try {
         const deletedPoster = await Poster.findByIdAndDelete(posterID);

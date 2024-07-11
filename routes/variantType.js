@@ -4,9 +4,11 @@ const VariantType = require('../model/variantType');
 const Product = require('../model/product');
 const Variant = require('../model/variant');
 const asyncHandler = require('express-async-handler');
+const verifyToken = require('../middlewares/verify_token_middleware');
+
 
 // Get all variant types
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', verifyToken, asyncHandler(async (req, res) => {
     try {
         const variantTypes = await VariantType.find();
         res.json({ success: true, message: "VariantTypes retrieved successfully.", data: variantTypes });
@@ -16,7 +18,7 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // Get a variant type by ID
-router.get('/:id', asyncHandler(async (req, res) => {
+router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const variantTypeID = req.params.id;
         const variantType = await VariantType.findById(variantTypeID);
@@ -30,14 +32,14 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Create a new variant type
-router.post('/', asyncHandler(async (req, res) => {
-    const { name ,type } = req.body;
+router.post('/', verifyToken, asyncHandler(async (req, res) => {
+    const { name, type } = req.body;
     if (!name) {
         return res.status(400).json({ success: false, message: "Name is required." });
     }
 
     try {
-        const variantType = new VariantType({ name , type });
+        const variantType = new VariantType({ name, type });
         const newVariantType = await variantType.save();
         res.json({ success: true, message: "VariantType created successfully.", data: null });
     } catch (error) {
@@ -46,15 +48,15 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 // Update a variant type
-router.put('/:id', asyncHandler(async (req, res) => {
+router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     const variantTypeID = req.params.id;
-    const { name ,type } = req.body;
+    const { name, type } = req.body;
     if (!name) {
         return res.status(400).json({ success: false, message: "Name is required." });
     }
 
     try {
-        const updatedVariantType = await VariantType.findByIdAndUpdate(variantTypeID, { name , type}, { new: true });
+        const updatedVariantType = await VariantType.findByIdAndUpdate(variantTypeID, { name, type }, { new: true });
         if (!updatedVariantType) {
             return res.status(404).json({ success: false, message: "VariantType not found." });
         }
@@ -65,7 +67,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Delete a variant type
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
     const variantTypeID = req.params.id;
     try {
         // Check if any variant is associated with this variant type
@@ -73,7 +75,7 @@ router.delete('/:id', asyncHandler(async (req, res) => {
         if (variantCount > 0) {
             return res.status(400).json({ success: false, message: "Cannot delete variant type. It is associated with one or more variants." });
         }
-        
+
         // Check if any products reference this variant type
         const products = await Product.find({ proVariantTypeId: variantTypeID });
         if (products.length > 0) {

@@ -3,11 +3,15 @@ const router = express.Router();
 const Variant = require('../model/variant');
 const Product = require('../model/product');
 const asyncHandler = require('express-async-handler');
+const verifyToken = require('../middlewares/verify_token_middleware');
+
+
+const SECRET_KEY = process.env.JWT_SECRET_KET;
 
 // Get all variants
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', verifyToken, asyncHandler(async (req, res) => {
     try {
-        const variants = await Variant.find().populate('variantTypeId').sort({'variantTypeId': 1});
+        const variants = await Variant.find().populate('variantTypeId').sort({ 'variantTypeId': 1 });
         res.json({ success: true, message: "Variants retrieved successfully.", data: variants });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -15,7 +19,7 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // Get a variant by ID
-router.get('/:id', asyncHandler(async (req, res) => {
+router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const variantID = req.params.id;
         const variant = await Variant.findById(variantID).populate('variantTypeId');
@@ -29,7 +33,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Create a new variant
-router.post('/', asyncHandler(async (req, res) => {
+router.post('/', verifyToken, asyncHandler(async (req, res) => {
     const { name, variantTypeId } = req.body;
     if (!name || !variantTypeId) {
         return res.status(400).json({ success: false, message: "Name and VariantType ID are required." });
@@ -45,7 +49,7 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 // Update a variant
-router.put('/:id', asyncHandler(async (req, res) => {
+router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     const variantID = req.params.id;
     const { name, variantTypeId } = req.body;
     if (!name || !variantTypeId) {
@@ -64,7 +68,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Delete a variant
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
     const variantID = req.params.id;
     try {
         // Check if any products reference this variant

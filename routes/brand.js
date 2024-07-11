@@ -3,11 +3,13 @@ const router = express.Router();
 const Brand = require('../model/brand');
 const Product = require('../model/product');
 const asyncHandler = require('express-async-handler');
+const verifyToken = require('../middlewares/verify_token_middleware');
+
 
 // Get all brands
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', verifyToken, asyncHandler(async (req, res) => {
     try {
-        const brands = await Brand.find().populate('subcategoryId').sort({'subcategoryId': 1});
+        const brands = await Brand.find().populate('subcategoryId').sort({ 'subcategoryId': 1 });
         res.json({ success: true, message: "Brands retrieved successfully.", data: brands });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -15,7 +17,7 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // Get a brand by ID
-router.get('/:id', asyncHandler(async (req, res) => {
+router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const brandID = req.params.id;
         const brand = await Brand.findById(brandID).populate('subcategoryId');
@@ -29,7 +31,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Create a new brand
-router.post('/', asyncHandler(async (req, res) => {
+router.post('/', verifyToken, asyncHandler(async (req, res) => {
     const { name, subcategoryId } = req.body;
     if (!name || !subcategoryId) {
         return res.status(400).json({ success: false, message: "Name and subcategory ID are required." });
@@ -45,7 +47,7 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 // Update a brand
-router.put('/:id', asyncHandler(async (req, res) => {
+router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     const brandID = req.params.id;
     const { name, subcategoryId } = req.body;
     if (!name || !subcategoryId) {
@@ -64,7 +66,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Delete a brand
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
     const brandID = req.params.id;
     try {
         // Check if any products reference this brand

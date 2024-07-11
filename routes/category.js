@@ -7,10 +7,12 @@ const { uploadCategory } = require('../uploadFile');
 const multer = require('multer');
 const asyncHandler = require('express-async-handler');
 const { BASE_URL } = require('./constants');
+const verifyToken = require('../middlewares/verify_token_middleware');
+
 
 
 // Get all categories
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', verifyToken, asyncHandler(async (req, res) => {
     try {
         const categories = await Category.find();
         res.json({ success: true, message: "Categories retrieved successfully.", data: categories });
@@ -20,7 +22,7 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // Get a category by ID
-router.get('/:id', asyncHandler(async (req, res) => {
+router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const categoryID = req.params.id;
         const category = await Category.findById(categoryID);
@@ -34,7 +36,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Create a new category with image upload
-router.post('/', asyncHandler(async (req, res) => {
+router.post('/', verifyToken, asyncHandler(async (req, res) => {
     try {
         uploadCategory.single('img')(req, res, async function (err) {
             if (err instanceof multer.MulterError) {
@@ -79,7 +81,7 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 // Update a category
-router.put('/:id', asyncHandler(async (req, res) => {
+router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const categoryID = req.params.id;
         uploadCategory.single('img')(req, res, async function (err) {
@@ -124,7 +126,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Delete a category
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const categoryID = req.params.id;
 

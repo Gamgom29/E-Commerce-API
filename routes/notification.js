@@ -5,11 +5,13 @@ const Notification = require('../model/notification');
 const OneSignal = require('onesignal-node');
 const dotenv = require('dotenv');
 dotenv.config();
+const verifyToken = require('../middlewares/verify_token_middleware');
+
 
 
 const client = new OneSignal.Client(process.env.ONE_SIGNAL_APP_ID, process.env.ONE_SIGNAL_REST_API_KEY);
 
-router.post('/send-notification', asyncHandler(async (req, res) => {
+router.post('/send-notification', verifyToken, asyncHandler(async (req, res) => {
     const { title, description, imageUrl } = req.body;
 
     const notificationBody = {
@@ -26,13 +28,13 @@ router.post('/send-notification', asyncHandler(async (req, res) => {
     const response = await client.createNotification(notificationBody);
     const notificationId = response.body.id;
     console.log('Notification sent to all users:', notificationId);
-    const notification = new Notification({ notificationId, title,description,imageUrl });
+    const notification = new Notification({ notificationId, title, description, imageUrl });
     const newNotification = await notification.save();
     res.json({ success: true, message: 'Notification sent successfully', data: null });
 }));
 
-router.get('/track-notification/:id', asyncHandler(async (req, res) => {
-    const  notificationId  =req.params.id;
+router.get('/track-notification/:id', verifyToken, asyncHandler(async (req, res) => {
+    const notificationId = req.params.id;
 
     const response = await client.viewNotification(notificationId);
     const androidStats = response.body.platform_delivery_stats;
@@ -49,7 +51,7 @@ router.get('/track-notification/:id', asyncHandler(async (req, res) => {
 }));
 
 
-router.get('/all-notification', asyncHandler(async (req, res) => {
+router.get('/all-notification', verifyToken, asyncHandler(async (req, res) => {
     try {
         const notifications = await Notification.find({}).sort({ _id: -1 });
         res.json({ success: true, message: "Notifications retrieved successfully.", data: notifications });
@@ -59,14 +61,14 @@ router.get('/all-notification', asyncHandler(async (req, res) => {
 }));
 
 
-router.delete('/delete-notification/:id', asyncHandler(async (req, res) => {
+router.delete('/delete-notification/:id', verifyToken, asyncHandler(async (req, res) => {
     const notificationID = req.params.id;
     try {
         const notification = await Notification.findByIdAndDelete(notificationID);
         if (!notification) {
             return res.status(404).json({ success: false, message: "Notification not found." });
         }
-        res.json({ success: true, message: "Notification deleted successfully.",data:null });
+        res.json({ success: true, message: "Notification deleted successfully.", data: null });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

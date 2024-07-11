@@ -2,13 +2,15 @@ const express = require('express');
 const asyncHandler = require('express-async-handler');
 const router = express.Router();
 const Order = require('../model/order');
+const verifyToken = require('../middlewares/verify_token_middleware');
+
 
 // Get all orders
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', verifyToken, asyncHandler(async (req, res) => {
     try {
         const orders = await Order.find()
-        .populate('couponCode', 'id couponCode discountType discountAmount')
-        .populate('userID', 'id name').sort({ _id: -1 });
+            .populate('couponCode', 'id couponCode discountType discountAmount')
+            .populate('userID', 'id name').sort({ _id: -1 });
         res.json({ success: true, message: "Orders retrieved successfully.", data: orders });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -16,7 +18,7 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 
-router.get('/orderByUserId/:userId', asyncHandler(async (req, res) => {
+router.get('/orderByUserId/:userId', verifyToken, asyncHandler(async (req, res) => {
     try {
         const userId = req.params.userId;
         const orders = await Order.find({ userID: userId })
@@ -31,12 +33,12 @@ router.get('/orderByUserId/:userId', asyncHandler(async (req, res) => {
 
 
 // Get an order by ID
-router.get('/:id', asyncHandler(async (req, res) => {
+router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const orderID = req.params.id;
         const order = await Order.findById(orderID)
-        .populate('couponCode', 'id couponCode discountType discountAmount')
-        .populate('userID', 'id name');
+            .populate('couponCode', 'id couponCode discountType discountAmount')
+            .populate('userID', 'id name');
         if (!order) {
             return res.status(404).json({ success: false, message: "Order not found." });
         }
@@ -47,14 +49,14 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Create a new order
-router.post('/', asyncHandler(async (req, res) => {
-    const { userID,orderStatus, items, totalPrice, shippingAddress, paymentMethod, couponCode, orderTotal, trackingUrl } = req.body;
+router.post('/', verifyToken, asyncHandler(async (req, res) => {
+    const { userID, orderStatus, items, totalPrice, shippingAddress, paymentMethod, couponCode, orderTotal, trackingUrl } = req.body;
     if (!userID || !items || !totalPrice || !shippingAddress || !paymentMethod || !orderTotal) {
         return res.status(400).json({ success: false, message: "User ID, items, totalPrice, shippingAddress, paymentMethod, and orderTotal are required." });
     }
 
     try {
-        const order = new Order({ userID,orderStatus, items, totalPrice, shippingAddress, paymentMethod, couponCode, orderTotal, trackingUrl });
+        const order = new Order({ userID, orderStatus, items, totalPrice, shippingAddress, paymentMethod, couponCode, orderTotal, trackingUrl });
         const newOrder = await order.save();
         res.json({ success: true, message: "Order created successfully.", data: null });
     } catch (error) {
@@ -63,7 +65,7 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 // Update an order
-router.put('/:id', asyncHandler(async (req, res) => {
+router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const orderID = req.params.id;
         const { orderStatus, trackingUrl } = req.body;
@@ -88,7 +90,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Delete an order
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const orderID = req.params.id;
         const deletedOrder = await Order.findByIdAndDelete(orderID);
