@@ -6,8 +6,7 @@ const multer = require('multer');
 const asyncHandler = require('express-async-handler');
 const { BASE_URL } = require('./constants');
 const verifyToken = require('../middlewares/verify_token_middleware');
-
-
+const {storage,upload} = require('../appwrite');
 
 // Get all posters
 router.get('/', verifyToken, asyncHandler(async (req, res) => {
@@ -34,47 +33,72 @@ router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
 }));
 
 // Create a new poster
-router.post('/', verifyToken, asyncHandler(async (req, res) => {
+router.post('/', verifyToken,upload.single('image'), asyncHandler(async (req, res) => {
     try {
-        uploadPosters.single('img')(req, res, async function (err) {
-            if (err instanceof multer.MulterError) {
-                if (err.code === 'LIMIT_FILE_SIZE') {
-                    err.message = 'File size is too large. Maximum filesize is 5MB.';
-                }
-                console.log(`Add poster: ${err}`);
-                return res.json({ success: false, message: err });
-            } else if (err) {
-                console.log(`Add poster: ${err}`);
-                return res.json({ success: false, message: err });
-            }
-            const { posterName } = req.body;
-            let imageUrl = 'no_url';
-            if (req.file) {
-                imageUrl = `${BASE_URL}/image/poster/${req.file.filename}`;
-            }
-
-            if (!posterName) {
-                return res.status(400).json({ success: false, message: "Name is required." });
-            }
-
-            try {
-                const newPoster = new Poster({
-                    posterName: posterName,
-                    imageUrl: imageUrl
-                });
-                await newPoster.save();
-                res.json({ success: true, message: "Poster created successfully.", data: null });
-            } catch (error) {
-                console.error("Error creating Poster:", error);
-                res.status(500).json({ success: false, message: error.message });
-            }
-
+        if (!req.file) {
+          return res.status(400).send('No file uploaded');
+        }
+    
+        const file = req.file;
+        const fileId = `image_${Date.now()}`; 
+    
+        const response = await storage.createFile(
+          process.env.APPWRITE_BUCKET_ID, 
+          fileId,
+          file.buffer,
+          ['*'], 
+          ['*']
+        );
+    
+        res.json({
+          message: 'File uploaded successfully',
+          fileId: response.$id,
+          // You can include more details from the response if needed
         });
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        res.status(500).send('Error uploading file');
+      }
+    // try {
+    //     uploadPosters.single('img')(req, res, async function (err) {
+    //         if (err instanceof multer.MulterError) {
+    //             if (err.code === 'LIMIT_FILE_SIZE') {
+    //                 err.message = 'File size is too large. Maximum filesize is 5MB.';
+    //             }
+    //             console.log(`Add poster: ${err}`);
+    //             return res.json({ success: false, message: err });
+    //         } else if (err) {
+    //             console.log(`Add poster: ${err}`);
+    //             return res.json({ success: false, message: err });
+    //         }
+    //         const { posterName } = req.body;
+    //         let imageUrl = 'no_url';
+    //         if (req.file) {
+    //             imageUrl = `${BASE_URL}/image/poster/${req.file.filename}`;
+    //         }
 
-    } catch (err) {
-        console.log(`Error creating Poster: ${err.message}`);
-        return res.status(500).json({ success: false, message: err.message });
-    }
+    //         if (!posterName) {
+    //             return res.status(400).json({ success: false, message: "Name is required." });
+    //         }
+
+    //         try {
+    //             const newPoster = new Poster({
+    //                 posterName: posterName,
+    //                 imageUrl: imageUrl
+    //             });
+    //             await newPoster.save();
+    //             res.json({ success: true, message: "Poster created successfully.", data: null });
+    //         } catch (error) {
+    //             console.error("Error creating Poster:", error);
+    //             res.status(500).json({ success: false, message: error.message });
+    //         }
+
+    //     });
+
+    // } catch (err) {
+    //     console.log(`Error creating Poster: ${err.message}`);
+    //     return res.status(500).json({ success: false, message: err.message });
+    // }
 }));
 
 // Update a poster
