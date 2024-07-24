@@ -8,7 +8,8 @@ const multer = require('multer');
 const asyncHandler = require('express-async-handler');
 const { BASE_URL } = require('./constants');
 const verifyToken = require('../middlewares/verify_token_middleware');
-
+const { storage, upload } = require('../appwrite');
+const { InputFile } = require('node-appwrite/file');
 
 
 // Get all categories
@@ -36,43 +37,44 @@ router.get('/:id', verifyToken, asyncHandler(async (req, res) => {
 }));
 
 // Create a new category with image upload
-router.post('/', verifyToken, asyncHandler(async (req, res) => {
+router.post('/', verifyToken, upload.single('image'), asyncHandler(async (req, res) => {
     try {
-        uploadCategory.single('img')(req, res, async function (err) {
-            if (err instanceof multer.MulterError) {
-                if (err.code === 'LIMIT_FILE_SIZE') {
-                    err.message = 'File size is too large. Maximum filesize is 5MB.';
-                }
-                console.log(`Add category: ${err}`);
-                return res.json({ success: false, message: err });
-            } else if (err) {
-                console.log(`Add category: ${err}`);
-                return res.json({ success: false, message: err });
-            }
-            const { name } = req.body;
-            let imageUrl = 'no_url';
-            if (req.file) {
-                imageUrl = BASE_URL + `/image/category/${req.file.filename}`;
-            }
-            console.log('url ', req.file)
 
-            if (!name) {
-                return res.status(400).json({ success: false, message: "Name is required." });
-            }
+        const { name } = req.body;
 
-            try {
-                const newCategory = new Category({
-                    name: name,
-                    image: imageUrl
-                });
-                await newCategory.save();
-                res.json({ success: true, message: "Category created successfully.", data: null });
-            } catch (error) {
-                console.error("Error creating category:", error);
-                res.status(500).json({ success: false, message: error.message });
-            }
 
-        });
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+
+
+        if (!name) {
+            return res.status(400).json({ success: false, message: "Name is required." });
+        }
+
+        const file = req.file;
+        const fileId = `image_${Date.now()}`;
+        const response = await storage.createFile(
+            process.env.APPWRITE_BUCKET_ID,
+            fileId,
+            InputFile.fromBuffer(file.buffer, file.originalname),
+
+
+        );
+        fileUrl = `${process.env.APPWRITE_API_URL}/storage/buckets/${process.env.APPWRITE_BUCKET_ID}/files/${response.$id}/view?project=${process.env.APPWRITE_PROJECT_ID}&mode=admin`;
+
+        try {
+            const newCategory = new Category({
+                name: name,
+                image: fileUrl
+            });
+            await newCategory.save();
+            res.json({ success: true, message: "Category created successfully.", data: null });
+        } catch (error) {
+            console.error("Error creating category:", error);
+            res.status(500).json({ success: false, message: error.message });
+        }
+
 
     } catch (err) {
         console.log(`Error creating category: ${err.message}`);
@@ -84,40 +86,25 @@ router.post('/', verifyToken, asyncHandler(async (req, res) => {
 router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
     try {
         const categoryID = req.params.id;
-        uploadCategory.single('img')(req, res, async function (err) {
-            if (err instanceof multer.MulterError) {
-                if (err.code === 'LIMIT_FILE_SIZE') {
-                    err.message = 'File size is too large. Maximum filesize is 5MB.';
-                }
-                console.log(`Update category: ${err.message}`);
-                return res.json({ success: false, message: err.message });
-            } else if (err) {
-                console.log(`Update category: ${err.message}`);
-                return res.json({ success: false, message: err.message });
+
+
+        const { name } = req.body;
+        let image = req.body.image;
+        if (!name || !image) {
+            return res.status(400).json({ success: false, message: "Name and image are required." });
+        }
+
+        try {
+            const updatedCategory = await Category.findByIdAndUpdate(categoryID, { name: name, image: image }, { new: true });
+            if (!updatedCategory) {
+                return res.status(404).json({ success: false, message: "Category not found." });
             }
+            res.json({ success: true, message: "Category updated successfully.", data: null });
+        } catch (error) {
+            res.status(500).json({ success: false, message: error.message });
+        }
 
-            const { name } = req.body;
-            let image = req.body.image;
 
-            if (req.file) {
-                image = BASE_URL + `/image/category/${req.file.filename}`;
-            }
-
-            if (!name || !image) {
-                return res.status(400).json({ success: false, message: "Name and image are required." });
-            }
-
-            try {
-                const updatedCategory = await Category.findByIdAndUpdate(categoryID, { name: name, image: image }, { new: true });
-                if (!updatedCategory) {
-                    return res.status(404).json({ success: false, message: "Category not found." });
-                }
-                res.json({ success: true, message: "Category updated successfully.", data: null });
-            } catch (error) {
-                res.status(500).json({ success: false, message: error.message });
-            }
-
-        });
 
     } catch (err) {
         console.log(`Error updating category: ${err.message}`);
@@ -147,6 +134,13 @@ router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
         if (!category) {
             return res.status(404).json({ success: false, message: "Category not found." });
         }
+        const fileId = extractFileId(deletedPoster.imageUrl);
+        if (fileId) {
+            const result = await storage.deleteFile(
+                `${process.env.APPWRITE_BUCKET_ID}`, // bucketId
+                fileId, // fileId
+            );
+        }
         res.json({ success: true, message: "Category deleted successfully." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -155,6 +149,15 @@ router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
 
 
 
+function extractFileId(url) {
+    const pattern = /\/files\/([^\/]+)\/view/;
+    const match = url.match(pattern);
+    if (match) {
+        console.log(match[1]);
+        return match[1];
+    }
+    return null;
+}
 
 
 
