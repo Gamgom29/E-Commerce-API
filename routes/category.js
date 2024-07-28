@@ -83,19 +83,41 @@ router.post('/', verifyToken, upload.single('image'), asyncHandler(async (req, r
 }));
 
 // Update a category
-router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
+router.put('/:id', verifyToken, upload.single('image'), asyncHandler(async (req, res) => {
     try {
         const categoryID = req.params.id;
 
 
-        const { name } = req.body;
-        let image = req.body.image;
-        if (!name || !image) {
+        const { name, imageUrl } = req.body;
+        let file = req.file;
+        if (!file) {
+            const updatedCategory = await Category.findByIdAndUpdate(categoryID, { name: name, image: imageUrl }, { new: true });
+            if (!updatedCategory) {
+                return res.status(404).json({ success: false, message: "Category not found." });
+            }
+            res.json({ success: true, message: "Category updated successfully.", data: null });
+        }
+
+        if (!name || !imageUrl) {
             return res.status(400).json({ success: false, message: "Name and image are required." });
         }
 
         try {
-            const updatedCategory = await Category.findByIdAndUpdate(categoryID, { name: name, image: image }, { new: true });
+            const fileId = extractFileId(imageUrl);
+            await storage.deleteFile(
+                `${process.env.APPWRITE_BUCKET_ID}`, // bucketId
+                fileId, // fileId
+            );
+
+            const finalFileId = `image_${Date.now()}`;
+            const response = await storage.createFile(
+                process.env.APPWRITE_BUCKET_ID,
+                finalFileId,
+                InputFile.fromBuffer(file.buffer, file.originalname),
+            );
+
+            const finalFileUrl = `${process.env.APPWRITE_API_URL}/storage/buckets/${process.env.APPWRITE_BUCKET_ID}/files/${finalFileId}/view?project=${process.env.APPWRITE_PROJECT_ID}&mode=admin`;
+            const updatedCategory = await Category.findByIdAndUpdate(categoryID, { name: name, image: finalFileUrl }, { new: true });
             if (!updatedCategory) {
                 return res.status(404).json({ success: false, message: "Category not found." });
             }
@@ -130,11 +152,12 @@ router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
         }
 
         // If no subcategories or products are referencing the category, proceed with deletion
+
         const category = await Category.findByIdAndDelete(categoryID);
         if (!category) {
             return res.status(404).json({ success: false, message: "Category not found." });
         }
-        const fileId = extractFileId(deletedPoster.imageUrl);
+        const fileId = extractFileId(category.image);
         if (fileId) {
             const result = await storage.deleteFile(
                 `${process.env.APPWRITE_BUCKET_ID}`, // bucketId
