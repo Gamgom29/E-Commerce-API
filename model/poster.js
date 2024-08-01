@@ -6,12 +6,19 @@ const posterSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true
+  },
+
   imageUrl: {
     type: String,
     required: true
   }
 }, {
-  timestamps: true 
+  timestamps: true
 });
 
 const Poster = mongoose.model('Poster', posterSchema);
