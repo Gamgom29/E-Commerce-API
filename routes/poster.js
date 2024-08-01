@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Poster = require('../model/poster');
+
 const { uploadPosters } = require('../uploadFile');
 const multer = require('multer');
 const asyncHandler = require('express-async-handler');
@@ -41,7 +42,7 @@ router.post('/', verifyToken, upload.single('image'), asyncHandler(async (req, r
         if (!req.file) {
             return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
-        const { posterName } = req.body;
+        const { posterName, productId } = req.body;
         if (!posterName) {
             return res.status(400).json({ success: false, message: "Name is required." });
         }
@@ -59,7 +60,8 @@ router.post('/', verifyToken, upload.single('image'), asyncHandler(async (req, r
         try {
             const newPoster = new Poster({
                 posterName: posterName,
-                imageUrl: fileUrl
+                imageUrl: fileUrl,
+                productId: productId
             });
             await newPoster.save();
             res.json({ success: true, message: "Poster created successfully.", data: null });
@@ -79,12 +81,12 @@ router.post('/', verifyToken, upload.single('image'), asyncHandler(async (req, r
 router.put('/:id', verifyToken, upload.single('image'), asyncHandler(async (req, res) => {
     try {
         const posterID = req.params.id;
-        const { posterName, imageUrl } = req.body;
+        const { posterName, imageUrl, productId } = req.body;
 
         // Validate file
         const file = req.file;
         if (!file) {
-            const updatedPoster = await Poster.findByIdAndUpdate(posterID, { posterName: posterName, imageUrl: finalFileUrl }, { new: true });
+            const updatedPoster = await Poster.findByIdAndUpdate(posterID, { posterName: posterName, imageUrl: imageUrl, productId: productId }, { new: true });
 
             if (!updatedPoster) {
                 return res.status(404).json({ success: false, message: "Poster not found." });
@@ -113,7 +115,7 @@ router.put('/:id', verifyToken, upload.single('image'), asyncHandler(async (req,
             );
 
             const finalFileUrl = `${process.env.APPWRITE_API_URL}/storage/buckets/${process.env.APPWRITE_BUCKET_ID}/files/${finalFileId}/view?project=${process.env.APPWRITE_PROJECT_ID}&mode=admin`;
-            const updatedPoster = await Poster.findByIdAndUpdate(posterID, { posterName: posterName, imageUrl: finalFileUrl }, { new: true });
+            const updatedPoster = await Poster.findByIdAndUpdate(posterID, { posterName: posterName, imageUrl: finalFileUrl, productId: productId }, { new: true });
 
             if (!updatedPoster) {
                 return res.status(404).json({ success: false, message: "Poster not found." });
