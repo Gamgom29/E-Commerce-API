@@ -10,7 +10,8 @@ const posterSchema = new mongoose.Schema({
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
-    required: true
+    default: null,
+    required: false
   },
 
   imageUrl: {
